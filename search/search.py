@@ -88,19 +88,19 @@ def depthFirstSearch(problem):
     """
     from util import Stack
 
-    fringe = Stack()
-    fringe.push( (problem.getStartState(), []) )
+    stack = Stack()
+    stack.push( (problem.getStartState(), []) )
     explored = set()
 
-    while not fringe.isEmpty():
-        node, path = fringe.pop()
+    while not stack.isEmpty():
+        node, path = stack.pop()
         if problem.isGoalState(node):
             return path
         explored.add(node)
 
         for successor in problem.getSuccessors(node):
             if successor[0] not in explored:
-                fringe.push( (successor[0], path + [successor[1]]) )
+                stack.push( (successor[0], path + [successor[1]]) )
 
     util.raiseNotDefined()
 
@@ -108,13 +108,13 @@ def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     from util import Queue
 
-    fringe = Queue()
-    fringe.push((problem.getStartState(), []))
+    stack = Queue()
+    stack.push((problem.getStartState(), []))
     explored = set()
-    fringe_set = set()  # This set will track nodes already in the fringe
+    stack_set = set()  # This set will track nodes already in the stack
 
-    while not fringe.isEmpty():
-        node, path = fringe.pop()
+    while not stack.isEmpty():
+        node, path = stack.pop()
 
         if problem.isGoalState(node):
             return path
@@ -123,9 +123,9 @@ def breadthFirstSearch(problem):
             explored.add(node)
 
             for successor, action, step_cost in problem.getSuccessors(node):
-                if successor not in explored and successor not in fringe_set:
-                    fringe.push((successor, path + [action]))
-                    fringe_set.add(successor)
+                if successor not in explored and successor not in stack_set:
+                    stack.push((successor, path + [action]))
+                    stack_set.add(successor)
 
     util.raiseNotDefined()
 
@@ -133,12 +133,12 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     from util import PriorityQueue
 
-    fringe = PriorityQueue()
-    fringe.push((problem.getStartState(), []), 0)
+    stack = PriorityQueue()
+    stack.push((problem.getStartState(), []), 0)
     explored = set()
 
-    while not fringe.isEmpty():
-        node, path = fringe.pop()
+    while not stack.isEmpty():
+        node, path = stack.pop()
 
         # Check if we reached the goal when removing the node from the queue
         if problem.isGoalState(node):
@@ -151,7 +151,7 @@ def uniformCostSearch(problem):
                 if successor not in explored:
                     new_path = path + [action]
                     new_cost = problem.getCostOfActions(new_path)
-                    fringe.push((successor, new_path), new_cost)
+                    stack.push((successor, new_path), new_cost)
 
     util.raiseNotDefined()
 
@@ -167,12 +167,12 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     from util import PriorityQueue
     start = problem.getStartState()
-    fringe = PriorityQueue()
-    fringe.push((start, []), 0)
+    stack = PriorityQueue()
+    stack.push((start, []), 0)
     explored = set()
 
-    while not fringe.isEmpty():
-        node, path = fringe.pop()
+    while not stack.isEmpty():
+        node, path = stack.pop()
 
         if problem.isGoalState(node):
             return path
@@ -184,7 +184,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
                 if successor not in explored:
                     new_path = path + [action]
                     new_cost = problem.getCostOfActions(new_path) + heuristic(successor, problem)
-                    fringe.push((successor, new_path), new_cost)
+                    stack.push((successor, new_path), new_cost)
 
     util.raiseNotDefined()
 
