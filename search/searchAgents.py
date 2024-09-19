@@ -283,13 +283,14 @@ class CornersProblem(search.SearchProblem):
                 print('Warning: no food in corner ' + str(corner))
         self._expanded = 0 # DO NOT CHANGE
         # Please add any code here which you would like to use
-        # in initializing the problem
+        # creating start state accounting starting position, and a tuple to store
         self.startState = (self.startingPosition, tuple())
     
     def getStartState(self):
         """
         Returns the start state (Pacman's position and visited corners).
         """
+        # simply return the start state we initialized
         return self.startState
         util.raiseNotDefined()
 
@@ -299,7 +300,8 @@ class CornersProblem(search.SearchProblem):
         The goal is achieved when all corners have been visited.
         """
         position, visitedCorners = state
-        # Goal state is when all four corners have been visited
+        
+        # return true if all 4 corners visited
         return len(visitedCorners) == 4
         util.raiseNotDefined()
 
@@ -326,14 +328,18 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
             
-            if not self.walls[nextx][nexty]:
+            # if proposed position does not run into wall, set to nextPosition
+            if not hitsWall:
                 nextPosition = (nextx, nexty)
                 newVisitedCorners = visitedCorners
                 
+                # if next position is a corner, add to visited corners
                 if nextPosition in self.corners and nextPosition not in visitedCorners:
                     newVisitedCorners = visitedCorners + (nextPosition,)
                 
+                # go to next position accounter for currect position, visited corners, and cost
                 successors.append(((nextPosition, newVisitedCorners), action, 1))
 
         self._expanded += 1  # DO NOT CHANGE
@@ -540,9 +546,9 @@ def mazeDistance(point1, point2, gameState):
     position in that state is ignored.
 
     Example usage: mazeDistance( (2,4), (5,6), gameState)
-
     This might be a useful helper function for your ApproximateSearchAgent.
     """
+    
     x1, y1 = point1
     x2, y2 = point2
     walls = gameState.getWalls()

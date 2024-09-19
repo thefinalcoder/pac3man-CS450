@@ -88,19 +88,33 @@ def depthFirstSearch(problem):
     """
     from util import Stack
 
-    stack = Stack()
-    stack.push( (problem.getStartState(), []) )
-    explored = set()
+    # using LIFO stack to store nodes for a pop/push technique
+    nodeStack = Stack()
+    
+    # push nodes to begin
+    nodeStack.push( (problem.getStartState(), []) )
+    
+    # using set to store explored nodes, in order to prevent revisiting
+    exploredNodes = set()
 
-    while not stack.isEmpty():
-        node, path = stack.pop()
+    # if not all nodes explored, perform functions. Loops until goal is found. If not, util.raiseNotDefined() is called.
+    while not nodeStack.isEmpty():
+        
+        # check next deeper node
+        node, path = nodeStack.pop()
+        
+        # agent finds node == goal
         if problem.isGoalState(node):
             return path
-        explored.add(node)
+        
+        # node explored, add to set
+        exploredNodes.add(node)
 
-        for successor in problem.getSuccessors(node):
-            if successor[0] not in explored:
-                stack.push( (successor[0], path + [successor[1]]) )
+        for successorNode in problem.getSuccessors(node):
+            # if set of nodes not explored, push next set of nodes
+            if successorNode[0] not in exploredNodes:
+                nodeStack.push( (successorNode[0], path + [successorNode[1]]) )
+
 
     util.raiseNotDefined()
 
@@ -108,24 +122,38 @@ def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     from util import Queue
 
-    stack = Queue()
-    stack.push((problem.getStartState(), []))
-    explored = set()
-    stack_set = set()  # This set will track nodes already in the stack
+    # using FIFO Queue to explore each layer
+    nodeQueue = Queue()
+    
+    # push first layer of nodes to queue
+    nodeQueue.push((problem.getStartState(), []))
+    
+    # create a set to keep track of nodes already explored
+    exploredNodes = set()
+    
+    # create another set to keep track of nodes pushed to queue, but not fully explored yet
+    unexploredNodeStack = set()
 
-    while not stack.isEmpty():
-        node, path = stack.pop()
+    # while not all nodes have been explored in layer
+    while not nodeQueue.isEmpty():
+        
+        # check next node
+        node, path = nodeQueue.pop()
 
+        # agent finds node == goal
         if problem.isGoalState(node):
             return path
 
-        if node not in explored:
-            explored.add(node)
+        # node explored, not goal, add to set
+        if node not in exploredNodes:
+            exploredNodes.add(node)
 
+            # push next layer of nodes to check
             for successor, action, step_cost in problem.getSuccessors(node):
-                if successor not in explored and successor not in stack_set:
-                    stack.push((successor, path + [action]))
-                    stack_set.add(successor)
+                
+                if successor not in exploredNodes and successor not in unexploredNodeStack:
+                    nodeQueue.push((successor, path + [action]))
+                    unexploredNodeStack.add(successor)
 
     util.raiseNotDefined()
 
@@ -133,25 +161,33 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     from util import PriorityQueue
 
-    stack = PriorityQueue()
-    stack.push((problem.getStartState(), []), 0)
-    explored = set()
+    # using a priority queue to explore nodes based on cumulative cost
+    nodePQueue = PriorityQueue()
+    
+    # push initial set of nodes to explore
+    nodePQueue.push((problem.getStartState(), []), 0)
+    
+    # create a set to keep track of nodes explored
+    exploredNodes = set()
 
-    while not stack.isEmpty():
-        node, path = stack.pop()
+    # while not all nodes have been explored, keep searching
+    while not nodePQueue.isEmpty():
+        node, path = nodePQueue.pop()
 
-        # Check if we reached the goal when removing the node from the queue
+        # agent finds node == goal
         if problem.isGoalState(node):
             return path
 
-        if node not in explored:
-            explored.add(node)
+        # while a node is not in the set, add it to update
+        if node not in exploredNodes:
+            exploredNodes.add(node)
 
+            # push next set of nodes to explore, based on cumulative cost
             for successor, action, step_cost in problem.getSuccessors(node):
-                if successor not in explored:
-                    new_path = path + [action]
-                    new_cost = problem.getCostOfActions(new_path)
-                    stack.push((successor, new_path), new_cost)
+                if successor not in exploredNodes:
+                    nextPath = path + [action]
+                    nextCost = problem.getCostOfActions(nextPath)
+                    nodePQueue.push((successor, nextPath), nextCost)
 
     util.raiseNotDefined()
 
@@ -166,25 +202,36 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     from util import PriorityQueue
-    start = problem.getStartState()
-    stack = PriorityQueue()
-    stack.push((start, []), 0)
-    explored = set()
+    
+    # using priority queue once again as it is cost based
+    nodePQueue = PriorityQueue()
+    
+    # load in first set of nodes to explore
+    nodePQueue.push((problem.getStartState(), []), 0)
+    
+    # create a set to keep track of explored nodes
+    exploredNodes = set()
 
-    while not stack.isEmpty():
-        node, path = stack.pop()
+    # if priority queue is not empty, keep checking
+    while not nodePQueue.isEmpty():
+        
+        # check the next node based on f cost, aka h(n) + g(n)
+        node, path = nodePQueue.pop()
 
+        # agent detects node == goal
         if problem.isGoalState(node):
             return path
 
-        if node not in explored:
-            explored.add(node)
+        # node has been explored and hasn't already been
+        if node not in exploredNodes:
+            exploredNodes.add(node)
 
-            for successor, action, step_cost in problem.getSuccessors(node):
-                if successor not in explored:
-                    new_path = path + [action]
-                    new_cost = problem.getCostOfActions(new_path) + heuristic(successor, problem)
-                    stack.push((successor, new_path), new_cost)
+            # based on f cost, pull next set of nodes
+            for successor, action, cost in problem.getSuccessors(node):
+                if successor not in exploredNodes:
+                    nextPath = path + [action]
+                    nextCost = problem.getCostOfActions(nextPath) + heuristic(successor, problem)
+                    nodePQueue.push((successor, nextPath), nextCost)
 
     util.raiseNotDefined()
 
