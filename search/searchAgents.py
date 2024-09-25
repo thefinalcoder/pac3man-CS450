@@ -361,22 +361,43 @@ class CornersProblem(search.SearchProblem):
 
 def cornersHeuristic(state, problem):
     """
-    A heuristic for the CornersProblem that you defined.
-
-      state:   The current search state
-               (a data structure you chose in your search problem)
-
-      problem: The CornersProblem instance for this layout.
-
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible (as well as consistent).
+    A more effective heuristic for the CornersProblem.
+    It estimates the cost of visiting all remaining corners using the sum of
+    the Manhattan distances from the current position to the nearest corner 
+    and then between the remaining unvisited corners.
     """
-    corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    corners = problem.corners  # These are the corner coordinates
+    walls = problem.walls  # These are the walls of the maze, as a Grid
 
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    current_position = state[0]
+    visited_corners = state[1]  # Assume this is a list or set of visited corners
+
+    # List of corners that haven't been visited yet
+    unvisited_corners = [corner for corner in corners if corner not in visited_corners]
+
+    if not unvisited_corners:
+        return 0  # No corners left to visit
+
+    # Calculate the Manhattan distance from the current position to the nearest unvisited corner
+    distances = [abs(current_position[0] - corner[0]) + abs(current_position[1] - corner[1]) for corner in unvisited_corners]
+
+    # Start with the minimum distance from the current position to any unvisited corner
+    min_distance = min(distances)
+
+    # Add the distances between all remaining unvisited corners (to estimate the full path)
+    corner_distances = 0
+    current_corner = unvisited_corners.pop(distances.index(min_distance))
+    
+    while unvisited_corners:
+        next_corner = min(unvisited_corners, key=lambda c: abs(current_corner[0] - c[0]) + abs(current_corner[1] - c[1]))
+        corner_distances += abs(current_corner[0] - next_corner[0]) + abs(current_corner[1] - next_corner[1])
+        current_corner = next_corner
+        unvisited_corners.remove(next_corner)
+
+    # Return the estimate of the total minimum distance
+    return min_distance + corner_distances
+
+
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
