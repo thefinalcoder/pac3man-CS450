@@ -361,41 +361,65 @@ class CornersProblem(search.SearchProblem):
 
 def cornersHeuristic(state, problem):
     """
-    A more effective heuristic for the CornersProblem.
-    It estimates the cost of visiting all remaining corners using the sum of
-    the Manhattan distances from the current position to the nearest corner 
-    and then between the remaining unvisited corners.
+    A heuristic for the CornersProblem that you defined.
+
+      state:   The current search state
+               (a data structure you chose in your search problem)
+
+      problem: The CornersProblem instance for this layout.
+
+    This function should always return a number that is a lower bound on the
+    shortest path from the state to a goal of the problem; i.e.  it should be
+    admissible (as well as consistent).
     """
     corners = problem.corners  # These are the corner coordinates
-    walls = problem.walls  # These are the walls of the maze, as a Grid
+    walls = problem.walls  # These are the walls of the maze, as a Grid (game.py)
 
-    current_position = state[0]
-    visited_corners = state[1]  # Assume this is a list or set of visited corners
-
-    # List of corners that haven't been visited yet
-    unvisited_corners = [corner for corner in corners if corner not in visited_corners]
-
-    if not unvisited_corners:
-        return 0  # No corners left to visit
-
-    # Calculate the Manhattan distance from the current position to the nearest unvisited corner
-    distances = [abs(current_position[0] - corner[0]) + abs(current_position[1] - corner[1]) for corner in unvisited_corners]
-
-    # Start with the minimum distance from the current position to any unvisited corner
-    min_distance = min(distances)
-
-    # Add the distances between all remaining unvisited corners (to estimate the full path)
-    corner_distances = 0
-    current_corner = unvisited_corners.pop(distances.index(min_distance))
+    # keep track of current corner and explored/unexplored corners
+    currCorner = state[0]
+    exploredCorners = state[1]
+    unexploredCorners = []
     
-    while unvisited_corners:
-        next_corner = min(unvisited_corners, key=lambda c: abs(current_corner[0] - c[0]) + abs(current_corner[1] - c[1]))
-        corner_distances += abs(current_corner[0] - next_corner[0]) + abs(current_corner[1] - next_corner[1])
-        current_corner = next_corner
-        unvisited_corners.remove(next_corner)
+    # create list of unexplored corners
+    for corner in corners:
+        if corner not in exploredCorners:
+            unexploredCorners.append(corner)
 
-    # Return the estimate of the total minimum distance
-    return min_distance + corner_distances
+    # if there are no more corners to explore, end
+    if len(unexploredCorners) == 0:
+        return 0
+
+    # get the manhattan distances from current corner to unexplored corners (x,y)
+    manhattanDistance = []
+    for corner in unexploredCorners:
+        manhattanDistance.append(abs(currCorner[0] - corner[0]) + abs(currCorner[1] - corner[1]))
+
+    # get the shortest distance in manhattanDistance
+    minDistance = min(manhattanDistance)
+
+    # total of distances to estimate a path
+    cornerDistances = 0
+    
+    # next unexplored corner becomes the current corner
+    currCorner = unexploredCorners.pop(manhattanDistance.index(minDistance))
+    
+    # while unexplored corners still exist, find next corner, add distance from current corner to next corner, current corner becomes next corner, remove previous corner
+    while unexploredCorners != []:
+        
+        # find the next corner with the shortest distance
+        nextCorner = min(unexploredCorners, key=lambda corner: abs(currCorner[0] - corner[0]) + abs(currCorner[1] - corner[1]))
+        
+        # add the distance from current corner to next corner
+        cornerDistances += abs(currCorner[0] - nextCorner[0]) + abs(currCorner[1] - nextCorner[1])
+        
+        # next corner becomes current corner
+        currCorner = nextCorner
+        
+        # corner is explored
+        unexploredCorners.remove(nextCorner)
+
+    # return total of distances to estimate a minimum path
+    return minDistance + cornerDistances
 
 
 
@@ -492,27 +516,37 @@ def foodHeuristic(state, problem):
 
     position, foodGrid = state
 
-    foodL = foodGrid.asList()
+    # create a list of food left
+    foodLeft = foodGrid.asList()
 
+    # store walls count in call to wallCount from heuristicInfo
     problem.heuristicInfo['wallCount'] = problem.walls.count()
 
+    # if all the food is gone, return 0 to end
     if problem.isGoalState(state):
         return 0
 
-    # Find real distances between position and all of the food #
-    distance = []
-    flag = 0
+    # create a list of distances from food
+    foodDistance = []
+    
+    # create a count of how many food items are checked
+    foodCount = 0
 
-    for item in foodL:
-        distance.append(mazeDistance(position,item,problem.startingGameState))
+    # for every food item in food list
+    for food in foodLeft:
+        
+        # utilizing mazeDistance, add next distance to list of food distances
+        foodDistance.append(mazeDistance(position,food,problem.startingGameState))
 
-        # If we have a difficult maze stop search #
-        if flag == 4 and problem.heuristicInfo['wallCount'] > 20:
+        # if there are at least 4 food items, as well as more then 20 walls, search is very complex
+        if foodCount == 4 and problem.heuristicInfo['wallCount'] > 20:
             break
 
-        flag += 1
+        # increment food count by 1 to keep track
+        foodCount += 1
 
-    return max(distance)
+    # return max distance to estimate the difficulty of collecting all food items
+    return max(foodDistance)
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
