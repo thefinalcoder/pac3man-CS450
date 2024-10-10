@@ -22,12 +22,7 @@ class ReflexAgent(Agent):
     """
       A reflex agent chooses an action at each choice point by examining
       its alternatives via a state evaluation function.
-
-      The code below is provided as a guide.  You are welcome to change
-      it in any way you see fit, so long as you don't touch our method
-      headers.
     """
-
 
     def getAction(self, gameState):
         """
@@ -45,36 +40,39 @@ class ReflexAgent(Agent):
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
-
-        "Add more of your code here if you want to"
+        chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
 
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
         """
         Design a better evaluation function here.
-
-        The evaluation function takes in the current and proposed successor
-        GameStates (pacman.py) and returns a number, where higher numbers are better.
-
-        The code below extracts some useful information from the state, like the
-        remaining food (newFood) and Pacman position after moving (newPos).
-        newScaredTimes holds the number of moves that each ghost will remain
-        scared because of Pacman having eaten a power pellet.
-
-        Print out these variables to see what you're getting, then combine them
-        to create a masterful evaluation function.
         """
-        # Useful information you can extract from a GameState (pacman.py)
+        # Get successor state
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # Calculate distance to the nearest food
+        foodList = newFood.asList()
+        if foodList:
+            minFoodDistance = min([manhattanDistance(newPos, food) for food in foodList])
+        else:
+            minFoodDistance = 1  # Avoid division by zero
+
+        # Calculate distance to the nearest ghost
+        ghostDistances = [manhattanDistance(newPos, ghost.getPosition()) for ghost in newGhostStates]
+        minGhostDistance = min(ghostDistances) if ghostDistances else 1
+
+        # Calculate the reciprocal of distances
+        foodScore = 1.0 / minFoodDistance
+        ghostScore = -1.0 / minGhostDistance if minGhostDistance > 0 else -float('inf')
+
+        # Combine the scores with weights
+        score = successorGameState.getScore() + foodScore + ghostScore
+
+        return score
 
 def scoreEvaluationFunction(currentGameState):
     """
