@@ -22,6 +22,10 @@ class ReflexAgent(Agent):
     """
       A reflex agent chooses an action at each choice point by examining
       its alternatives via a state evaluation function.
+
+      The code below is provided as a guide.  You are welcome to change
+      it in any way you see fit, so long as you don't touch our method
+      headers.
     """
 
     def getAction(self, gameState):
@@ -42,35 +46,60 @@ class ReflexAgent(Agent):
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
 
+        "Add more of your code here if you want to"
+
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
         """
         Design a better evaluation function here.
+
+        The evaluation function takes in the current and proposed successor
+        GameStates (pacman.py) and returns a number, where higher numbers are better.
+
+        The code below extracts some useful information from the state, like the
+        remaining food (newFood) and Pacman position after moving (newPos).
+        newScaredTimes holds the number of moves that each ghost will remain
+        scared because of Pacman having eaten a power pellet.
+
+        Print out these variables to see what you're getting, then combine them
+        to create a masterful evaluation function.
         """
-        # Get successor state
+        # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        # Calculate distance to the nearest food
+        # make list of all food
         foodList = newFood.asList()
+        
+        # if any food exits, find the smallest MH distance from pacman to food
         if foodList:
-            minFoodDistance = min([manhattanDistance(newPos, food) for food in foodList])
+          foodDist = min([manhattanDistance(newPos, food) for food in foodList])
+        
+        # if no food exists, set distance to 1 to prevent div by 0
         else:
-            minFoodDistance = 1  # Avoid division by zero
+          foodDist = 1
 
-        # Calculate distance to the nearest ghost
-        ghostDistances = [manhattanDistance(newPos, ghost.getPosition()) for ghost in newGhostStates]
-        minGhostDistance = min(ghostDistances) if ghostDistances else 1
+        # if any ghosts exist, fin the smallest MH distance from pacman to ghost
+        if newGhostStates:
+          ghostDist = min([manhattanDistance(newPos, ghost.getPosition()) for ghost in newGhostStates])
+          
+        # if no ghosts exist, set distance to 1 to prevent div by 0
+        else:
+          ghostDist = 1
 
-        # Calculate the reciprocal of distances
-        foodScore = 1.0 / minFoodDistance
-        ghostScore = -1.0 / minGhostDistance if minGhostDistance > 0 else -float('inf')
+        # take reciprocal of distances to get scores, 
+        # food score is positive as closer to food is good
+        # ghost score is negative as closer to ghost is bad
+        foodScore = 1.0 / foodDist
+        ghostScore = -1.0 / ghostDist if ghostDist > 0 else -float('inf')
 
-        # Combine the scores with weights
+        # calculate score with new food and ghost scores
         score = successorGameState.getScore() + foodScore + ghostScore
+
 
         return score
 
@@ -111,42 +140,98 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gameState):
         """
-        Returns the minimax action from the current gameState using self.depth
-        and self.evaluationFunction.
+          Returns the minimax action from the current gameState using self.depth
+          and self.evaluationFunction.
+
+          Here are some method calls that might be useful when implementing minimax.
+
+          gameState.getLegalActions(agentIndex):
+            Returns a list of legal actions for an agent
+            agentIndex=0 means Pacman, ghosts are >= 1
+
+          gameState.generateSuccessor(agentIndex, action):
+            Returns the successor game state after an agent takes an action
+
+          gameState.getNumAgents():
+            Returns the total number of agents in the game
         """
+        
+        # minimax function utilizing min and max value functions
         def minimax(agentIndex, depth, gameState):
-            if depth == 0 or gameState.isWin() or gameState.isLose():
-                return self.evaluationFunction(gameState)
+          
+          # if the depth limit is reached or the game is over, return the evaluation function
+          if depth == 0 or gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
 
-            if agentIndex == 0:  # Pacman's turn (maximizing agent)
-                return maxValue(agentIndex, depth, gameState)
-            else:  # Ghosts' turn (minimizing agents)
-                return minValue(agentIndex, depth, gameState)
-
+          # if index is 0, it is pacman's turn to maximize score
+          if agentIndex == 0:
+            return maxValue(agentIndex, depth, gameState)
+            
+          # else it is the ghosts' turn to minimize score
+          else:
+            return minValue(agentIndex, depth, gameState)
+        
+        
+        
+        # max value function
         def maxValue(agentIndex, depth, gameState):
-            v = float('-inf')
-            legalMoves = gameState.getLegalActions(agentIndex)
-            bestAction = None
-            for action in legalMoves:
-                successor = gameState.generateSuccessor(agentIndex, action)
-                value = minimax(1, depth, successor)
-                if value > v:
-                    v = value
-                    bestAction = action
-            if depth == self.depth:  # Return the action at the root node
-                return bestAction
-            return v
+          
+          # set max val to -infinity as a placeholder
+          maxVal = float('-inf')
+          
+          # all legal actions
+          legalActions = gameState.getLegalActions(agentIndex)
+          
+          # for each legal action, generate successor and find minimax value
+          for action in legalActions:
+              successor = gameState.generateSuccessor(agentIndex, action)
+              value = minimax(1, depth, successor)
+              
+              # if this new value is greater than maxVal, update maxVal with value, 
+              # and update bestAction with current action
+              if value > maxVal:
+                  maxVal = value
+                  bestAction = action
+          
+          # if function is at root depth, return bestAction
+          if depth == self.depth:
+              return bestAction
+            
+          # else return maxVal
+          return maxVal
 
+
+
+        # min value function
         def minValue(agentIndex, depth, gameState):
-            v = float('inf')
-            legalMoves = gameState.getLegalActions(agentIndex)
-            nextAgent = (agentIndex + 1) % gameState.getNumAgents()
-            nextDepth = depth - 1 if nextAgent == 0 else depth
-            for action in legalMoves:
-                successor = gameState.generateSuccessor(agentIndex, action)
-                value = minimax(nextAgent, nextDepth, successor)
-                v = min(v, value)
-            return v
+          
+          # set min val to +infinity as a placeholder
+          minVal = float('inf')
+          
+          # all legal actions
+          legalActions = gameState.getLegalActions(agentIndex)
+          
+          # find index of next agent, and find next depth
+          nextAgentIndex = (agentIndex + 1) % gameState.getNumAgents()
+          
+          # if next agent is pacman, reduce depth by 1
+          if nextAgentIndex == 0:
+            nextDepth = depth - 1
+                
+          # else keep depth the same
+          else:
+            nextDepth = depth
+          
+          # for each legal action, generate successor and find minimax value
+          for action in legalActions:
+            successor = gameState.generateSuccessor(agentIndex, action)
+            value = minimax(nextAgentIndex, nextDepth, successor)
+            
+            # if this new value is smaller thn minVal, update minVal with value
+            if value < minVal:
+              minVal = value
+          return minVal
+
 
         return minimax(0, self.depth, gameState)
 
