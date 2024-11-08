@@ -259,19 +259,74 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def expectimax(agentIndex, depth, gameState):
+            if gameState.isWin() or gameState.isLose() or depth == self.depth:
+                return self.evaluationFunction(gameState)
+            
+            if agentIndex == 0:  # Pacman
+                return max(expectimax(1, depth, gameState.generateSuccessor(agentIndex, action))
+                           for action in gameState.getLegalActions(agentIndex))
+            else:  # Ghosts
+                nextAgent = (agentIndex + 1) % gameState.getNumAgents()
+                nextDepth = depth + 1 if nextAgent == 0 else depth
+                actions = gameState.getLegalActions(agentIndex)
+                return sum(expectimax(nextAgent, nextDepth, gameState.generateSuccessor(agentIndex, action))
+                           for action in actions) / len(actions)
+
+        actions = gameState.getLegalActions(0)
+        scores = [expectimax(1, 0, gameState.generateSuccessor(0, action)) for action in actions]
+        bestScore = max(scores)
+        bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+        chosenIndex = random.choice(bestIndices)
+
+        return actions[chosenIndex]
 
 def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: This evaluation function considers the following features:
+      - The reciprocal of the distance to the nearest food
+      - The number of remaining food pellets (negative)
+      - The reciprocal of the distance to the nearest ghost (positive if ghost is scared)
+      - The current game score
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pacmanPos = currentGameState.getPacmanPosition()
+    food = currentGameState.getFood()
+    ghosts = currentGameState.getGhostStates()
+    capsules = currentGameState.getCapsules()
+    score = currentGameState.getScore()
+
+    # Distance to the nearest food
+    foodDistances = [manhattanDistance(pacmanPos, foodPos) for foodPos in food.asList()]
+    if foodDistances:
+        minFoodDistance = min(foodDistances)
+    else:
+        minFoodDistance = 1
+
+    # Distance to the nearest ghost
+    ghostDistances = [manhattanDistance(pacmanPos, ghost.getPosition()) for ghost in ghosts]
+    if ghostDistances:
+        minGhostDistance = min(ghostDistances)
+    else:
+        minGhostDistance = 1
+
+    # Check if ghosts are scared
+    scaredTimes = [ghost.scaredTimer for ghost in ghosts]
+    if min(scaredTimes) > 0:
+        minGhostDistance = -minGhostDistance
+
+    # Number of remaining food pellets
+    numFood = currentGameState.getNumFood()
+
+    # Number of remaining capsules
+    numCapsules = len(capsules)
+
+    # Linear combination of features
+    evaluation = score + (1.0 / minFoodDistance) - numFood - (1.0 / minGhostDistance) - numCapsules
+
+    return evaluation
 
 # Abbreviation
 better = betterEvaluationFunction
-
