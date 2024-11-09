@@ -254,23 +254,106 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gameState):
         """
-          Returns the expectimax action using self.depth and self.evaluationFunction
+        Returns the expectimax action using self.depth and self.evaluationFunction
 
-          All ghosts should be modeled as choosing uniformly at random from their
-          legal moves.
+        All ghosts should be modeled as choosing uniformly at random from their
+        legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        def expectimax(state, depth, agentIndex):
+            # check if max depth or terminal state reached
+            if (depth == self.depth) or state.isWin() or state.isLose():
+              return self.evaluationFunction(state)
+
+            # if its pacman's turn
+            if agentIndex == 0:
+              # find the pacman action with the biggest score
+              return max(expectimax(state.generateSuccessor(agentIndex, action), depth, 1) for action in state.getLegalActions(agentIndex))
+
+            # if it's not pacman's turn, it's ghost's turn
+            else:
+              # cycle through each ghost
+              nextAgent = (agentIndex + 1) % state.getNumAgents()
+              
+              # go to next depth when all agents have had a turn
+              if (nextAgent == 0):
+                nextDepth = depth + 1 
+              
+              else:
+                nextDepth = depth
+              
+              # get all legal actions from current agent
+              actions = state.getLegalActions(agentIndex)
+                
+              # from here return the sum of all ghost actions
+              return sum(expectimax(state.generateSuccessor(agentIndex, action), nextDepth, nextAgent) for action in actions) / len(actions) if actions else 0
+
+        # find the best action for pacman to take
+        bestAction = max(gameState.getLegalActions(0), key=lambda action: expectimax(gameState.generateSuccessor(0, action), 0, 1))
+        
+        # return
+        return bestAction
 
 def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: <We used a score reward/penalty function based on the resources of currentGameState.
+                    For any food, ghosts, power pellets left, pacman's score was increased or decreased
+                    based on whether or not it should be closer or further away from states such as ghosts 
+                    or food>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    
+    # get current score
+    score = currentGameState.getScore()
+
+    # get pacman's current position
+    currPos = currentGameState.getPacmanPosition()
+    
+    # get list of food left
+    foodList = currentGameState.getFood().asList()
+    
+    # if there is food left
+    if foodList:
+      
+      # find minimum distance to food
+      foodDist = min([manhattanDistance(currPos, food) for food in foodList])
+      
+      # the closer to food, higher the score (reward)
+      score += 10.0 / foodDist
+
+    # get all of the ghost states and their distances from pacman
+    ghostStates = currentGameState.getGhostStates()
+    ghostDistances = []
+    for ghost in ghostStates:
+      ghostPos = ghost.getPosition()
+      ghostDist = manhattanDistance(currPos, ghostPos)
+      
+      # if pacman eats a power pellet, the closer to ghosts, higher the score (reward)
+      if ghost.scaredTimer > 0:
+        score += 200.0 / ghostDist
+      
+      # if pacman has NOT eaten a power pellet
+      else:
+        ghostDistances.append(ghostDist)
+    
+    # if any ghost distances exist, find closest ghost
+    if ghostDistances:
+      minGhostDist = min(ghostDistances)
+      
+      # the closer to ghosts, lower the score (penalty)
+      score -= 10.0 / (minGhostDist + 1)
+
+    # based on power pellets left, lower score. pacman should consume power pellets. (penalty)
+    capsules = currentGameState.getCapsules()
+    score -= 20 * len(capsules)
+
+    # based on food left, lower score. pacman should consume food. (penalty)
+    score -= 4 * len(foodList)
+
+    # return this new calculated score
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
